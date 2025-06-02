@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Shop Cart Example</title>
+  <style>
+    /* Взял основные стили из твоего SCSS, адаптировал под CSS */
+    body {
+      font-family: "Rubik", sans-serif;
+      color: #303841;
+      margin: 0;
+      padding: 40px 20px;
+      background: #f6c90e;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .wrapper {
+      max-width: 720px;
+      display: flex;
+      gap: 20px;
+    }
+    .screen {
+      background: white;
+      width: 340px;
+      height: 600px;
+      border-radius: 30px;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 20px 28px;
+      box-sizing: border-box;
+      position: relative;
+    }
+    .app-bar {
+      display: flex;
+      align-items: center;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #ddd;
+    }
+    .app-bar img {
+      width: 50px;
+      margin-right: 10px;
+    }
+    .title {
+      font-weight: bold;
+      font-size: 24px;
+    }
+    .shop-items, .cart-items {
+      margin-top: 20px;
+      flex-grow: 1;
+    }
+    .item, .cart-item {
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 20px;
+    }
+    .image-area {
+      height: 200px;
+      border-radius: 30px;
+      overflow: hidden;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #eee;
+      position: relative;
+    }
+    .image-area img {
+      max-height: 180px;
+      transform: rotate(-24deg);
+      filter: drop-shadow(0 20px 10px rgba(0,0,0,0.2));
+    }
+    .name {
+      font-weight: bold;
+      font-size: 18px;
+      margin-bottom: 5px;
+    }
+    .description {
+      font-size: 13px;
+      color: #777;
+      margin-bottom: 10px;
+    }
+    .bottom-area {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .price {
+      font-weight: bold;
+      font-size: 18px;
+    }
+    button.add-button {
+      background-color: #f6c90e;
+      border: none;
+      border-radius: 100px;
+      padding: 10px 20px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      user-select: none;
+      white-space: nowrap;
+    }
+    button.add-button:disabled {
+      background-color: #ddd;
+      cursor: default;
+    }
+    .cart-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .cart-item .left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    .cart-image {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background-color: #eee;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+    .cart-image img {
+      width: 140%;
+      transform: rotate(-28deg) translateY(-40px);
+      filter: drop-shadow(0 30px 20px rgba(0,0,0,0.2));
+    }
+    .count {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .count button {
+      background-color: #eee;
+      border: none;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .count button:hover {
+      background-color: #ddd;
+    }
+    .number {
+      font-size: 14px;
+      width: 20px;
+      text-align: center;
+    }
+    .no-content {
+      text-align: center;
+      color: #777;
+      font-size: 14px;
+      margin-top: 100px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="wrapper">
+    <div class="screen left-screen">
+      <div class="app-bar">
+        <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/1315882/pngwave.png" alt="Logo" />
+        <div class="title">Picked items</div>
+      </div>
+      <div class="shop-items" id="shop-items"></div>
+    </div>
+
+    <div class="screen right-screen">
+      <div class="app-bar">
+        <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/1315882/pngwave.png" alt="Logo" />
+        <div class="title">Your cart</div>
+      </div>
+      <div class="cart-items" id="cart-items"></div>
+      <div class="no-content" id="no-content" style="display:none;">Your cart is empty.</div>
+    </div>
+  </div>
+
+  <script>
+    const shopItemsEl = document.getElementById('shop-items');
+    const cartItemsEl = document.getElementById('cart-items');
+    const noContentEl = document.getElementById('no-content');
+
+    let shopItems = [];
+    let cartItems = [];
+
+    // Загрузка данных
+    fetch('https://s3-us-west-2.amazonaws.com/s.cdpn.io/1315882/shoes.json')
+      .then(res => res.json())
+      .then(data => {
+        shopItems = data.shoes;
+        renderShopItems();
+      });
+
+    function renderShopItems() {
+      shopItemsEl.innerHTML = '';
+      shopItems.forEach(item => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'item';
+
+        itemEl.innerHTML = `
+          <div class="image-area" style="background-color: ${item.color}">
+            <img src="${item.image}" alt="${item.name}" />
+          </div>
+          <div class="name">${item.name}</div>
+          <div class="description">${item.description}</div>
+          <div class="bottom-area">
+            <div class="price">$${item.price}</div>
+            <button class="add-button" ${item.inCart ? 'disabled' : ''} data-id="${item.id}">
+              ${item.inCart ? 'Added' : 'Add to Cart'}
+            </button>
+          </div>
+        `;
+
+        const btn = itemEl.querySelector('button.add-button');
+        btn.addEventListener('click', () => addToCart(item.id));
+
+        shopItemsEl.appendChild(itemEl);
+      });
+    }
+
+    function renderCartItems() {
+      if (cartItems.length === 0) {
+        cartItemsEl.style.display = 'none';
+        noContentEl.style.display = 'block';
+      } else {
+        cartItemsEl.style.display = 'block';
+        noContentEl.style.display = 'none';
+
+        cartItemsEl.innerHTML = '';
+        cartItems.forEach(item => {
+          const cartItemEl = document.createElement('div');
+          cartItemEl.className = 'cart-item';
+
+          cartItemEl.innerHTML = `
+            <div class="left">
+              <div class="cart-image">
+                <img src="${item.image}" alt="${item.name}" />
+              </div>
+              <div>
+                <div class="name">${item.name}</div>
+                <div class="price">$${item.price}</div>
+              </div>
+            </div>
+            <div class="count">
+              <button data-id="${item.id}" class="decrement">-</button>
+              <div class="number">${item.count}</div>
+              <button data-id="${item.id}" class="increment">+</button>
+            </div>
+          `;
+
+          cartItemsEl.appendChild(cartItemEl);
+        });
+
+        // Навешиваем обработчики на кнопки
+        cartItemsEl.querySelectorAll('button.decrement').forEach(btn => {
+          btn.addEventListener('click', () => decrement(btn.dataset.id));
+        });
+        cartItemsEl.querySelectorAll('button.increment').forEach(btn => {
+          btn.addEventListener('click', () => increment(btn.dataset.id));
+        });
+      }
+    }
+
+    function addToCart(id) {
+      const shopItem = shopItems.find(i => i.id == id);
+      if (!shopItem.inCart) {
+        shopItem.inCart = true;
+        const newItem = {...shopItem, count: 1};
+        cartItems.push(newItem);
+        renderShopItems();
+        renderCartItems();
+      }
+    }
+
+    function decrement(id) {
+      const item = cartItems.find(i => i.id == id);
+      if (item) {
+        item.count--;
+        if (item.count <= 0) {
+          // Удаляем из корзины
+          cartItems = cartItems.filter(i => i.id != id);
+          // Снимаем флаг в магазине
+          const shopItem = shopItems.find(i => i.id == id);
+          if (shopItem) shopItem.inCart = false;
+          renderShopItems();
+        }
+        renderCartItems();
+      }
+    }
+
+    function increment(id) {
+      const item = cartItems.find(i => i.id == id);
+      if (item) {
+        item.count++;
+        renderCartItems();
+      }
+    }
+  </script>
+
+</body>
+</html>
